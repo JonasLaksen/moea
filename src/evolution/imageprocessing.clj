@@ -1,11 +1,9 @@
 (ns evolution.imageprocessing
   (:gen-class)
   (:require [clojure.string :as str])
-  (:require
-    [taoensso.timbre :as timbre
-      :refer [log  trace  debug  info  warn  error  fatal  report
-              logf tracef debugf infof warnf errorf fatalf reportf
-              spy get-env]])
+  (:require [evolution.utils :refer :all])
+  (:require [clojure.tools.trace :as d])
+  (:require [clojure.core.matrix :refer :all])
 )
 
 (import 'java.io.File)
@@ -34,17 +32,32 @@
   "Takes a path and returns a 2d-list of the pixels of an image"
   [path]
   (let [imageBuffer (ImageIO/read (FileInputStream. (File. path)))]
-    (partition (.getWidth imageBuffer) (for [y (range (.getHeight imageBuffer)) x (range (.getWidth imageBuffer))]
-                                         (integer->rgb (.getRGB imageBuffer x y)))) 
+    (matrix (partition (.getWidth imageBuffer) 
+                       (for [y (range (.getHeight imageBuffer)) x (range (.getWidth imageBuffer))]
+                                                 (integer->rgb (.getRGB imageBuffer x y))))) 
 ))
 
 (defn writeimage
-  "Takes a 2d-list and a filepath and writes an image"
+  "Takes a matrix and a filepath and writes an image"
   [image filepath]
-  (let [imageBuffer (BufferedImage. (count (nth image 0)) (count image) BufferedImage/TYPE_INT_RGB)]
-    (doseq [y (range (count image)) x (range (count (nth image 0)))]
-      (.setRGB imageBuffer x y (rgb->integer (nth (nth image y) x))))
-    (ImageIO/write imageBuffer "jpg" (File. filepath))))
+  (let [imageBuffer (BufferedImage. (column-count image) (row-count image) BufferedImage/TYPE_INT_RGB)]
+    (doseq [x (range (column-count image)) y (range (row-count image))]
+      (.setRGB imageBuffer x y (mget image y x)))
+    (ImageIO/write imageBuffer "png" (File. filepath))))
 
-
-(def image (readimage "resources/images/1/test.jpg"))
+(defn draw-segments
+  [segments image]
+  (let [produced-image (reduce 
+                        (fn 
+                          [matrix segment] 
+                          (let [color [(rand-int 256) (rand-int 256) (rand-int 256)]]
+                            (set-indices 
+                             matrix 
+                             (map 
+                              (fn [x] (get-matrix-position x matrix)) 
+                              segment) 
+                             (map rgb->integer (take (count segment) (repeat color))))))
+                        image
+                        segments)]
+    (writeimage produced-image "odin.png"))
+)
