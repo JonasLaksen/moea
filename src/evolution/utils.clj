@@ -8,6 +8,17 @@
   [xs]
   (/ (apply + xs) (count xs)))
 
+(defn get-matrix-position
+  "Takes an index and returns [x y] coordinates for a matrix"
+  [i matrix]
+  [(int (/ i (column-count matrix))) (mod i (column-count matrix))]
+  )
+
+(defn index-distance 
+  [matrix i j] 
+  (distance (apply mget matrix (get-matrix-position i matrix)) (apply mget matrix (get-matrix-position j matrix)))
+)
+
 (defn centroid
   "Takes a list of vectors and returns an average vector"
   [vectors]
@@ -29,12 +40,6 @@
 (defn pixel
   [i image]
   (mget image (int (/ i (row-count image))) (mod i (column-count image)))
-  )
-
-(defn get-matrix-position
-  "Takes an index and returns [x y] coordinates for a matrix"
-  [i matrix]
-  [(int (/ i (column-count matrix))) (mod i (column-count matrix))]
   )
 
 (defn neighbors
