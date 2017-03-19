@@ -40,20 +40,25 @@
                                      [i neighbor (index-distance image i neighbor)]) 
                                    neighbors))) 
                               (range (* (row-count image) (column-count image))))))]
-    (take n (repeat mst))))
-    ;; (map
-     ;; #(mutate 0.01 %1 image)
-     ;; (take n (repeat mst)))))
+    (map
+     #(mutate 0.01 %1 image)
+     (take n (repeat mst)))))
 
 (defn crossover
   "Takes two solutions and returns a child"
   [a b]
   (tufte/p ::crossover 
-           a))
-  ;; (pmap #(rand-nth [%1 %2]) a b)))
-  ;; (let [index (rand-int (count a))
-        ;; child (concat (take index a) (drop index b))]
-    ;; child))
+           (prim-mst 
+            (apply weighted-graph 
+                   (concat 
+                    (map (fn [x] {x {}}) (nodes a)) 
+                    (mapcat (fn [node] 
+                              (let [chosen (rand-nth [a b])] 
+                                (map 
+                                 (fn [succ] 
+                                   [node succ (weight chosen [node succ])]) 
+                                 (successors chosen node)))) 
+                            (nodes a)))))))
 
 (defn edge-value
   [solution image] 
@@ -76,23 +81,38 @@
                                     cluster)))
                          (connected-components solution)))))))
 
-;; (defn overall-deviation
-  ;; [solution image]
-  ;; (tufte/p ::overall-deviation
-  ;; (let [segments (clusters solution)]
-    ;; (reduce + (map 
-               ;; (fn 
-                 ;; [segment] 
-                 ;; (let [c (centroid (map (fn [p] (pixel p image)) segment))]
-                   ;; (reduce + (map 
-                              ;; (fn 
-                                ;; [point] 
-                                ;; (distance c (pixel point image))) 
-                              ;; segment)))) 
-               ;; segments)))))
+(defn connectivity-measure
+  [solution image]
+  (reduce + (mapcat
+             (fn [cluster]
+               (map
+                (fn [node]
+                  (reduce + (map
+                             #(let [neighbor (nearest-neighbor node %1 image)]
+                                (if (.contains cluster neighbor)
+                                  0
+                                  (/ 1 %1)))
+                             (range 1 8))))
+                cluster))
+             (connected-components solution)))
+)
+
+(defn overall-deviation
+  [solution image]
+  (tufte/p ::overall-deviation
+    (reduce + (map 
+               (fn 
+                 [segment] 
+                 (let [c (centroid (map (fn [p] (pixel p image)) segment))]
+                   (reduce + (map 
+                              (fn 
+                                [point] 
+                                (distance c (pixel point image))) 
+                              segment)))) 
+               (connected-components solution)))))
 
 (defn fitness 
   [solution image]
-  (let [od (edge-value solution image)]
+  (let [od (connectivity-measure solution image)]
     (- od)))
 

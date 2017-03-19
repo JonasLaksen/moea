@@ -4,6 +4,15 @@
   (:require [clojure.core.matrix :refer :all])
 )
 
+(defn remove-once [pred coll]
+  ((fn inner [coll]
+     (lazy-seq
+      (when-let [[x & xs] (seq coll)]
+        (if (pred x)
+          xs
+          (cons x (inner xs))))))
+   coll))
+
 (defn mean
   [xs]
   (/ (apply + xs) (count xs)))
@@ -57,4 +66,15 @@
         down (if (= (int (/ i (column-count matrix))) (-  (row-count matrix) 1))
                up
                (conj up (+ i (column-count matrix))))]
-    (conj down i)))
+    down))
+
+(defn temp
+  [levels i matrix] 
+  (let [ns (neighbors i matrix)] 
+    (if (= levels 0) 
+      []
+      (concat ns (mapcat #(temp (- levels 1) %1 matrix) ns)))))
+
+(defn nearest-neighbor
+  [i neighbor matrix]
+  (nth (remove #(= %1 i) (distinct (temp 3 i matrix))) neighbor))
