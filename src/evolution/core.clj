@@ -10,17 +10,16 @@
             [clojure.core.memoize :as memo]
             [evolution.imageprocessing :refer :all]))
 
-(def image (readimage "resources/images/test.png"))
-
-(def compile-time-min-level 2)
+(def image (readimage "resources/images/1/test.jpg"))
+;; (tufte/add-basic-println-handler! {})
 
 (defn lol
   [image]
-  (tufte/profile {} (let [initial-solutions (create-initial-solutions 20 image)
+  (tufte/profile {:level 0} (let [initial-solutions (create-initial-solutions 5 image)
                           fit (memo/fifo #(fitness %1 image) {} :fifo/threshold 256)
                           ;; fit #(fitness %1 image)
-                          best (simulate-evolution 10 0.3 fit crossover #(mutate 0.001 %1 image) initial-solutions) ]
-                      (draw-segments (connected-components best) image))))
+                          result (simulate-evolution 2 0.3 fit crossover #(mutate 0.001 %1 image) initial-solutions) ]
+                      (doall (map-indexed #(draw-segments %1 (connected-components %2) image) (take 5 result))))))
 
 (defn -main
   "I don't do a whole lot ... yet."

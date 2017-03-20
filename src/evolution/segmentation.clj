@@ -41,7 +41,7 @@
                                    neighbors))) 
                               (range (* (row-count image) (column-count image))))))]
     (map
-     #(mutate 0.01 %1 image)
+     #(mutate 0.001 %1 image)
      (take n (repeat mst)))))
 
 (defn crossover
@@ -113,6 +113,6 @@
 
 (defn fitness 
   [solution image]
-  (let [od (connectivity-measure solution image)]
+  (let [od (edge-value solution image)]
     (- od)))
 

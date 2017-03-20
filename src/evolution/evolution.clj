@@ -35,7 +35,6 @@
       (trace "---------------------")
       (trace "Best solution" (apply max (map evaluate (concat winners offspring))))
       (trace "Mean" (mean (map evaluate (concat winners offspring))))
-      ;; (trace (map evaluate solutions))
       (concat winners offspring)))
 
 (defn simulate-evolution
@@ -46,4 +45,4 @@
                    (evolve survival-rate evaluate crossover mutate x)) 
                  initial-solutions 
                  (take it (repeat 0)))] 
-     (apply max-key evaluate result))))
+     (sort-by evaluate result))))

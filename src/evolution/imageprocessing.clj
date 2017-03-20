@@ -2,7 +2,8 @@
   (:gen-class)
   (:require [clojure.string :as str])
   (:require [evolution.utils :refer :all])
-  (:require [clojure.tools.trace :as d])
+  (:require [clojure.tools.trace :as d]
+            [image-resizer.core :refer :all])
   (:require [clojure.core.matrix :refer :all])
 )
 
@@ -31,7 +32,7 @@
 (defn readimage
   "Takes a path and returns a 2d-list of the pixels of an image"
   [path]
-  (let [imageBuffer (ImageIO/read (FileInputStream. (File. path)))]
+  (let [imageBuffer (resize (ImageIO/read (FileInputStream. (File. path))) 100 100)]
     (matrix (partition (.getWidth imageBuffer) 
                        (for [y (range (.getHeight imageBuffer)) x (range (.getWidth imageBuffer))]
                                                  (integer->rgb (.getRGB imageBuffer x y))))) 
@@ -46,7 +47,7 @@
     (ImageIO/write imageBuffer "png" (File. filepath))))
 
 (defn draw-segments
-  [segments image]
+  [filename segments image]
   (let [produced-image (reduce 
                         (fn 
                           [matrix segment] 
@@ -59,5 +60,5 @@
                              (map rgb->integer (take (count segment) (repeat color))))))
                         image
                         segments)]
-    (writeimage produced-image "odin.png"))
+    (writeimage produced-image (str "results/" filename ".png")))
 )
