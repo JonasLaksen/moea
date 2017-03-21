@@ -3,7 +3,7 @@
   (:require [clojure.core.matrix :refer :all]
             [taoensso.tufte :as tufte]
             [evolution.segmentation :refer :all]
-            [loom.alg :refer [connected-components prim-mst]]
+            [loom.alg :refer [dijkstra-span bf-traverse connected-components prim-mst]]
             [loom.graph :refer [weight nodes weighted-graph weighted-digraph]]
             [evolution.evolution :refer :all]
             [evolution.utils :refer :all]
@@ -15,10 +15,10 @@
 
 (defn lol
   [image]
-  (tufte/profile {:level 0} (let [initial-solutions (create-initial-solutions 5 image)
+  (tufte/profile {:level 0} (let [initial-solution (first (create-initial-solutions 1 image))
                           fit (memo/fifo #(fitness %1 image) {} :fifo/threshold 256)
                           ;; fit #(fitness %1 image)
-                          result (simulate-evolution 2 0.3 fit crossover #(mutate 0.001 %1 image) initial-solutions) ]
+                          result (simulate-evolution 100 10 #(mutate 1 %1 image) fit initial-solution) ]
                       (doall (map-indexed #(draw-segments %1 (connected-components %2) image) (take 5 result))))))
 
 (defn -main

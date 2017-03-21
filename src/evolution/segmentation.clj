@@ -10,23 +10,17 @@
 
 
 (defn mutate
-  [rate solution image]
+  [times solution image]
   (tufte/p ::mutate 
-           (reduce
-            (fn [solution node ]
-              (if (<= (rand) (/ rate 2)) 
-                (let [neighbor (rand-nth (neighbors node image))]
-                  (add-edges solution [node neighbor (index-distance image node neighbor)])) 
-                (if (<= (rand) (/ rate 2))
-                  (remove-edges solution [node (rand-nth (concat [node] (successors solution node)))]) 
-                  solution)))
-            solution
-            (nodes solution))
-           ))
-  ;; (map-indexed (fn [i e] (if (= (rand-int 100) 0) 
-                           ;; (rand-nth (neighbors i image))
-                           ;; e)
-                 ;; ) solution)))
+           (prim-mst (reduce
+                      (fn [solution x]
+                        (let [node (rand-int (count (nodes solution)))
+                              neighbor (rand-nth (neighbors node image)) 
+                              removed (remove-edges solution [node (rand-nth (successors solution node))]) 
+                              added (add-edges removed [node neighbor (index-distance image node neighbor)])] 
+                          added))
+                      solution
+                      (range times)))))
 
 (defn create-initial-solutions
   "Returns n solutions where one solution is a list of segments"
@@ -41,7 +35,7 @@
                                    neighbors))) 
                               (range (* (row-count image) (column-count image))))))]
     (map
-     #(mutate 0.001 %1 image)
+     #(mutate 1000 %1 image)
      (take n (repeat mst)))))
 
 (defn crossover
@@ -113,6 +107,5 @@
 
 (defn fitness 
   [solution image]
-  (let [od (edge-value solution image)]
-    (- od)))
+    [(edge-value solution image) (overall-deviation solution image) (connectivity-measure solution image)])
 

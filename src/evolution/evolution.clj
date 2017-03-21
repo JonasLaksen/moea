@@ -6,43 +6,55 @@
   (:require [clojure.math.numeric-tower :refer :all])
 )
 
-(defn- select
-  "Tournament selection"
-  [n tournament-size evaluate solutions]
-    (if (or (zero? n) (= solutions [])) 
-      [] 
-      (let [chosen (->> solutions 
-                        (shuffle)
-                        (take tournament-size)
-                        (apply max-key evaluate))] 
-        (concat 
-         [chosen] 
-         (select (- n 1) tournament-size evaluate (remove-once  #(= %1 chosen) solutions))))))
+(defn dominates
+  [evaluate a b]
+  (every? identity (map > (evaluate a) (evaluate b)))
+)
 
-(defn- reproduce
-  [crossover mutate offspringCount parents]
-  (for [x (range offspringCount)] 
-    (->> (crossover (rand-nth parents) (rand-nth parents))
-         (mutate))))
+(defn dominating
+  [evaluate xs]
+     (filter (fn [x] (not (some #(dominates evaluate %1 x) xs))) xs)
+)
 
-(defn- evolve
-  [survival-rate evaluate crossover mutate solutions]
-    (let [pop-size       (count solutions)
-          survival-count (int (* survival-rate pop-size))
-          winners        (select survival-count (/ pop-size 2) evaluate solutions)
-          offspring (reproduce crossover mutate 
-                                      (- pop-size survival-count) winners)] 
-      (trace "---------------------")
-      (trace "Best solution" (apply max (map evaluate (concat winners offspring))))
-      (trace "Mean" (mean (map evaluate (concat winners offspring))))
-      (concat winners offspring)))
+(defn add-to-archive
+  [evaluate archive x size]
+  
+  (take size (dominating evaluate (concat [x] (filter #(not (= (evaluate %1) (evaluate x))) archive))))
+)
+
+(defn add-to-archive-if-spot
+  [archive x size]
+  (if (< (count archive) size)
+    (distinct (concat [x] archive))
+    archive))
+
+(defn evolve
+  [archive-size mutate ev p archive]
+    (let [c (mutate p)]
+      (trace "p" (ev p))
+      (trace "kik" (ev c))
+      (if (some identity (map #(dominates ev %1 c) archive))
+        [p archive]
+        (if (or (empty? archive) some identity (map #(dominates ev c %1) archive)) 
+          (let [trimmed-archive (remove #(dominates ev c %1) archive)] 
+              [c (add-to-archive ev trimmed-archive c archive-size)])
+          [p archive]))))
+
+        ;; (if (dominates ev c p)
+          ;; [c (add-to-archive ev archive c archive-size)]
+          ;; (if (some identity (map #(dominates ev c %1) archive))
+            ;; (let [trimmed-archive (remove #(dominates ev c %1) archive)] 
+              ;; [c (add-to-archive ev trimmed-archive c archive-size)])
+            ;; [ (rand-nth [c p]) (add-to-archive-if-spot archive c archive-size)])))))
 
 (defn simulate-evolution
-  [it survival-rate evaluate crossover mutate initial-solutions]
+  [it archive-size mutate evaluate initial-solution]
   (time 
-   (let [result (reduce 
+   (let [acc (reduce 
                  (fn [x y] 
-                   (evolve survival-rate evaluate crossover mutate x)) 
-                 initial-solutions 
-                 (take it (repeat 0)))] 
-     (sort-by evaluate result))))
+                   (trace "Second" (map evaluate (second x)))
+                   (evolve archive-size mutate evaluate (first x) (second x))) 
+                 [initial-solution []] 
+                 (take it (repeat 0)))
+         result (second acc)] 
+     (dominating evaluate result))))
