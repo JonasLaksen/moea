@@ -78,3 +78,22 @@
 (defn nearest-neighbor
   [i neighbor matrix]
   (nth (remove #(= %1 i) (distinct (temp 3 i matrix))) neighbor))
+
+(defn nearest-neighbors
+  [levels node matrix]
+  (let [x (mod node (column-count matrix))
+        y (int (/ node (column-count matrix)))
+        pairs (remove #(= % [0 0]) (distinct (for [x (range 0 (+ 1 levels)) y (range 0 (+ 1  levels)) z [-1 1] w [-1 1]] [(* z x) (* w y)])))
+        cut-east (filter 
+                  #(< 
+                    (first %) 
+                    (- (column-count matrix) x)) pairs)
+        cut-west (filter
+                  #(>= (+ (first %) x) 0) cut-east)
+        cut-north (filter
+                   #(>= (+ (second %) y) 0) cut-west)
+        cut-south (filter
+                   #(> (row-count matrix) (+ y (second %))) cut-north)
+]
+    (map (fn [pair] (+ node (+ (first pair) (* (second pair) (column-count matrix))))) cut-south))
+)

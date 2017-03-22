@@ -10,23 +10,17 @@
 
 
 (defn mutate
-  [rate solution image]
+  [times solution image]
   (tufte/p ::mutate 
            (reduce
-            (fn [solution node ]
-              (if (<= (rand) (/ rate 2)) 
-                (let [neighbor (rand-nth (neighbors node image))]
-                  (add-edges solution [node neighbor (index-distance image node neighbor)])) 
-                (if (<= (rand) (/ rate 2))
-                  (remove-edges solution [node (rand-nth (concat [node] (successors solution node)))]) 
-                  solution)))
+            (fn [solution x]
+              (let [node (rand-int (count (nodes solution)))
+                    neighbor (rand-nth (neighbors node image)) 
+                    removed (remove-edges solution [node (rand-nth (successors solution node))]) 
+                    added (add-edges removed [node neighbor (index-distance image node neighbor)])] 
+                added))
             solution
-            (nodes solution))
-           ))
-  ;; (map-indexed (fn [i e] (if (= (rand-int 100) 0) 
-                           ;; (rand-nth (neighbors i image))
-                           ;; e)
-                 ;; ) solution)))
+            (range times))))
 
 (defn create-initial-solutions
   "Returns n solutions where one solution is a list of segments"
@@ -41,24 +35,24 @@
                                    neighbors))) 
                               (range (* (row-count image) (column-count image))))))]
     (map
-     #(mutate 0.001 %1 image)
+     #(mutate 10 %1 image)
      (take n (repeat mst)))))
 
 (defn crossover
   "Takes two solutions and returns a child"
   [a b]
   (tufte/p ::crossover 
-           (prim-mst 
-            (apply weighted-graph 
-                   (concat 
-                    (map (fn [x] {x {}}) (nodes a)) 
-                    (mapcat (fn [node] 
-                              (let [chosen (rand-nth [a b])] 
-                                (map 
-                                 (fn [succ] 
-                                   [node succ (weight chosen [node succ])]) 
-                                 (successors chosen node)))) 
-                            (nodes a)))))))
+           (rand-nth [a b])))
+           ;; (apply weighted-graph 
+                  ;; (concat 
+                   ;; (map (fn [x] {x {}}) (nodes a)) 
+                   ;; (mapcat (fn [node] 
+                             ;; (let [chosen (rand-nth [a b])] 
+                               ;; (map 
+                                ;; (fn [succ] 
+                                  ;; [node succ (weight chosen [node succ])]) 
+                                ;; (successors chosen node)))) 
+                           ;; (nodes a))))))
 
 (defn edge-value
   [solution image] 
@@ -83,18 +77,17 @@
 
 (defn connectivity-measure
   [solution image]
-  (reduce + (mapcat
-             (fn [cluster]
-               (map
-                (fn [node]
-                  (reduce + (map
-                             #(let [neighbor (nearest-neighbor node %1 image)]
-                                (if (.contains cluster neighbor)
-                                  0
-                                  (/ 1 %1)))
-                             (range 1 8))))
-                cluster))
-             (connected-components solution)))
+  (let [contains-memoized (memoize #(.contains %1 %2))]
+    (float (reduce + (mapcat
+                      (fn [segment] (map
+                                     (fn [node] (reduce + 
+                                                        (map-indexed
+                                                         #(if (contains-memoized segment %2)
+                                                            0
+                                                            (/ 1 (+ 1 %1)))
+                                                         (nearest-neighbors 3 node image))))
+                                     segment))
+                      (connected-components solution)))))
 )
 
 (defn overall-deviation
@@ -113,6 +106,4 @@
 
 (defn fitness 
   [solution image]
-  (let [od (edge-value solution image)]
-    (- od)))
-
+    [(edge-value solution image)(overall-deviation solution image) (connectivity-measure solution image)])
