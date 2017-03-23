@@ -1,12 +1,10 @@
 (ns evolution.segmentation
   (:gen-class)
   (:require [clojure.core.matrix :refer [shape distance mget row-count column-count]]
-            [evolution.imageprocessing :refer :all]
             [loom.graph :refer :all]
             [loom.alg :refer :all]
             [taoensso.tufte :as tufte]
             [clojure.tools.trace :refer :all]
-            [tesser.simple :as s]
             [evolution.utils :refer :all]))
 
 (defn chromosome->graph
@@ -26,12 +24,12 @@
                            (assoc x :breaks (set (rest (shuffle (get x :breaks))))) 
 
                            ;; Add edge
-                           (let [edges (take 100 (shuffle (edges (get x :mst))))
+                           (let [edges (take 10 (shuffle (edges (get x :mst))))
                                  best-edge (apply max-key #(weight (get x :mst) %) edges)]
                              (assoc x :breaks (set (conj (get x :breaks) best-edge)))) 
                            ))
         segments (connected-components (chromosome->graph new-chromosome))]
-    (if (some #(< (count %) 50) segments) 
+    (if (some #(< (count %) 10) segments) 
       (mutate x dimensions)
       (if (< (count (get new-chromosome :breaks)) (get x :min))
         (mutate new-chromosome dimensions)
@@ -40,19 +38,20 @@
 (defn create-initial-solutions
   "Returns n solutions where one solution is a list of segments"
   [n image min-segments max-segments]
-  (let [mst (prim-mst (apply weighted-graph 
-                             (mapcat 
-                              (fn [i] 
-                                (let [neighbors (neighbors i [(column-count image) (row-count image)])] 
-                                  (map 
-                                   (fn [neighbor] 
-                                     [i neighbor (index-distance image i neighbor)]) 
-                                   neighbors))) 
-                              (range (* (row-count image) (column-count image))))))]
+  (let [mst (time (prim-mst (apply weighted-graph 
+                                   (mapcat 
+                                    (fn [i] 
+                                      (let [neighbors (neighbors i [(column-count image) (row-count image)])] 
+                                        (map 
+                                         (fn [neighbor] 
+                                           [i neighbor (index-distance image i neighbor)]) 
+                                         neighbors))) 
+                                    (range (* (row-count image) (column-count image)))))))]
     ;; mst))
     (map 
      (fn [_] 
-       (mutate {:min min-segments :max max-segments :breaks [] :mst mst } [(column-count image) (row-count image)]))
+        (mutate {:min min-segments :max max-segments :breaks [] :mst mst } 
+                [(column-count image) (row-count image)]))
      (range n))))
 
 (defn crossover
@@ -62,9 +61,7 @@
         breaks (take mean (shuffle (set (concat (get a :breaks) (get b :breaks)))))]
     (assoc a :breaks breaks)
     ))
-(defn find-first
-         [f coll]
-         (first (filter f coll)))
+
 
 (defn edge-value
   [segments image] 
@@ -123,3 +120,4 @@
   (let [g (chromosome->graph solution)
         segments (connected-components g)]
     [ (- (edge-value segments image)) (- (overall-deviation segments image))]))
+

@@ -99,3 +99,17 @@
 ]
     (map (fn [pair] (+ node (+ (first pair) (* (second pair) (column-count matrix))))) cut-south))
 )
+
+(defn outlineza
+  [segments image]
+  (let [labeled-nodes (apply concat (map-indexed (fn [index segment] (map (fn [node] [node index ]) segment)) segments)) 
+        nodes->segment (into (sorted-map) labeled-nodes)]
+    (map 
+     (fn [labeled-node]
+       (if (> (count (filter
+                      #(not (= (get nodes->segment %) (second labeled-node)))
+                      (neighbors (first labeled-node) [(column-count image) (row-count image)])))
+              0)
+         [1 (first labeled-node)]
+         [0 (first labeled-node)]))
+     labeled-nodes)))

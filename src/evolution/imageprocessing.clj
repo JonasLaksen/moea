@@ -1,11 +1,10 @@
 (ns evolution.imageprocessing
   (:gen-class)
   (:require [clojure.string :as str])
-  (:require [evolution.utils :refer :all])
   (:require [clojure.tools.trace :as d]
+            [evolution.utils :refer :all]
             [image-resizer.core :refer :all])
-  (:require [clojure.core.matrix :refer :all])
-)
+  (:require [clojure.core.matrix :refer :all]))
 
 (import 'java.io.File)
 (import 'java.io.FileInputStream)
@@ -32,8 +31,8 @@
 (defn readimage
   "Takes a path and returns a 2d-list of the pixels of an image"
   [path]
-  ;; (let [imageBuffer (resize (ImageIO/read (FileInputStream. (File. path))) 200 200)]
-  (let [imageBuffer (ImageIO/read (FileInputStream. (File. path)))]
+  (let [imageBuffer (resize (ImageIO/read (FileInputStream. (File. path))) 200 200)]
+  ;; (let [imageBuffer (ImageIO/read (FileInputStream. (File. path)))]
     (matrix (partition (.getWidth imageBuffer) 
                        (for [y (range (.getHeight imageBuffer)) x (range (.getWidth imageBuffer))]
                                                  (integer->rgb (.getRGB imageBuffer x y))))) 
@@ -63,3 +62,22 @@
                         segments)]
     (writeimage produced-image (str "results/" filename ".png")))
 )
+
+(defn draw-outline
+  [filename segments image with-image]
+  (let [outline (outlineza segments image)
+        produced-image (reduce
+                        (fn [image node]
+                          ;; (d/trace node)
+                          (if (= (first node) 1) 
+                            (set-indices image [(get-matrix-position (second node) image)] [(rgb->integer [0 255 0])])
+                            (set-indices image 
+                                         [(get-matrix-position (second node) image)] 
+                                         (if with-image 
+                                           [(rgb->integer (apply mget image (get-matrix-position (second node) image)))]
+                                           [(rgb->integer [255 255 255])]
+))
+                            ))
+                          image
+                          outline)]
+    (writeimage produced-image (str "results/" filename ".png"))))
