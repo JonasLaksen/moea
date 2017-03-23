@@ -32,7 +32,7 @@
 (defn readimage
   "Takes a path and returns a 2d-list of the pixels of an image"
   [path]
-  (let [imageBuffer (resize (ImageIO/read (FileInputStream. (File. path))) 100 100)]
+  (let [imageBuffer (resize (ImageIO/read (FileInputStream. (File. path))) 200 200)]
     (matrix (partition (.getWidth imageBuffer) 
                        (for [y (range (.getHeight imageBuffer)) x (range (.getWidth imageBuffer))]
                                                  (integer->rgb (.getRGB imageBuffer x y))))) 

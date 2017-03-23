@@ -3,6 +3,7 @@
   (:require [evolution.segmentation :refer :all])
   (:require [evolution.utils :refer :all]
             [medley.core :refer [distinct-by]]
+            [loom.alg :refer :all]
             [clojure.core.matrix :refer [distance mget row-count column-count]])
   (:require [clojure.tools.trace :refer :all])
   (:require [clojure.math.numeric-tower :refer :all]))
@@ -48,14 +49,14 @@
   (nth (sort-by #(distance (obj x) (obj %)) xs) k)
 )
 
-(defn- density
+(defn- densityz
   [obj x xs]
   (/ 1 (+ 2 (distance (obj x) (obj (kth-nearest-neighbor obj (sqrt (count xs)) x xs))))))
 
 
-(defn fitnessz
-  [obj x xs]
-  (+ (raw-fitness obj x xs) (density obj x xs)))
+(def fitnessz (memoize
+               (fn [obj x xs]
+                 (+ (raw-fitness obj x xs) (densityz obj x xs)))))
 
 (defn truncate
   [obj n xs]
@@ -85,6 +86,7 @@
 
 (defn evolve
   [it obj crossover mutate population archive archive-size population-size]
+  ;; (trace (map #(count (connected-components (chromosome->graph %))) population))
   (if (= it 0)
     (non-dominated obj (concat population archive))
     (let [all (unique obj (concat population archive))

@@ -31,6 +31,7 @@
 (defn centroid
   "Takes a list of vectors and returns an average vector"
   [vectors]
+  (trace vectors)
   (vec (map mean (transpose vectors))))
 
 (defn switch-2-random-nested-vector
@@ -48,24 +49,25 @@
 
 (defn pixel
   [i image]
-  (mget image (int (/ i (row-count image))) (mod i (column-count image)))
+  (do (trace i)
+      (mget image (int (/ i (row-count image))) (mod i (column-count image))))
   )
 
 (defn neighbors
-  [i matrix]
+  [i dimensions]
   (let [init []
-        left (if (= (mod i (column-count matrix)) 0)
+        left (if (= (mod i (first dimensions)) 0)
                init
                (conj init (- i 1)))
-        right (if (= (mod i (column-count matrix)) (- (column-count matrix) 1))
+        right (if (= (mod i (first dimensions)) (- (first dimensions) 1))
                left
                (conj left (+ i 1)))
-        up (if (= (int (/ i (column-count matrix))) 0)
+        up (if (= (int (/ i (first dimensions))) 0)
                right
-               (conj right (- i (column-count matrix))))
-        down (if (= (int (/ i (column-count matrix))) (-  (row-count matrix) 1))
+               (conj right (- i (first dimensions))))
+        down (if (= (int (/ i (first dimensions))) (-  (second dimensions) 1))
                up
-               (conj up (+ i (column-count matrix))))]
+               (conj up (+ i (first dimensions))))]
     down))
 
 (defn temp
