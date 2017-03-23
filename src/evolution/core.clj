@@ -11,15 +11,15 @@
             [clojure.core.memoize :as memo]
             [evolution.imageprocessing :refer :all]))
 
-;; (def image (readimage "resources/images/1/test.jpg"))
-(def image (readimage "carlton.jpg"))
+(def image (readimage "resources/images/1/test.jpg"))
+;; (def image (readimage "carlton.jpg"))
 (tufte/add-basic-println-handler! {})
 
 (defn lol
   [image]
-  (tufte/profile {:level 0} (let [initial-solutions (create-initial-solutions 10 image 5 15)
+  (tufte/profile {:level 0} (let [initial-solutions (create-initial-solutions 5 image 5 15)
                           fit (memo/fifo #(fitness %1 image) {} :fifo/threshold 256)
-                          result (simulate-evolution 5 fit crossover #(mutate %1 [(column-count image) (row-count image)]) initial-solutions) ]
+                          result (simulate-evolution 10 fit crossover #(mutate %1 [(column-count image) (row-count image)]) initial-solutions) ]
                               (doall (map-indexed #(draw-segments %1 (connected-components (chromosome->graph %2)) image) result)))))
 
 (defn -main
